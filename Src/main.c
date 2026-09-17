@@ -117,8 +117,8 @@ uint8_t Read_ADC_Value() {
 	return adc_data_8bit;
 }
 
-const uint16_t TIMER14_TICK_FREQUENCY_HZ = 10000; // 10 kHz tick frequency
-const uint16_t TIMER14_PERIOD_MS		 = 10;
+const uint16_t TIMER14_TICK_FREQUENCY_HZ = 1000000; // 100 kHz tick frequency
+const uint16_t TIMER14_PERIOD_MS		 = 10;		// 10 ms period
 const uint16_t TIMER14_ARR_VALUE = (TIMER14_PERIOD_MS * TIMER14_TICK_FREQUENCY_HZ) / 1000;
 
 void Init_Timer14() {
@@ -157,7 +157,8 @@ int main(void) {
 
 	char lcd_line1[17], lcd_line2[17];
 
-	uint8_t adc_value1, adc_value2;
+	uint8_t adc_value1 = 0, adc_value2 = 0;
+	uint8_t adc_value1_prev = 1, adc_value2_prev = 1;
 
 	while (1) {
 		Start_ADC_Conversion(); // Start a new single conversion
@@ -165,12 +166,18 @@ int main(void) {
 		Start_ADC_Conversion(); // Start a new single conversion
 		adc_value2 = Read_ADC_Value();
 
-		snprintf(lcd_line1, sizeof(lcd_line1), "POT1: %2X", adc_value1);
-		snprintf(lcd_line2, sizeof(lcd_line2), "POT2: %2X", adc_value2);
-		LCD_NewLine(0, 0);
-		LCD_PutString(lcd_line1);
-		LCD_NewLine(1, 0);
-		LCD_PutString(lcd_line2);
+		if (adc_value1 != adc_value1_prev) {
+			snprintf(lcd_line1, sizeof(lcd_line1), "POT1: %2X", adc_value1);
+			LCD_NewLine(0, 0);
+			LCD_PutString(lcd_line1);
+			adc_value1_prev = adc_value1;
+		}
+		if (adc_value2 != adc_value2_prev) {
+			snprintf(lcd_line2, sizeof(lcd_line2), "POT2: %2X", adc_value2);
+			LCD_NewLine(1, 0);
+			LCD_PutString(lcd_line2);
+			adc_value2_prev = adc_value2;
+		}
 
 		uint16_t current_time = Get_Timer14_Count();
 		if (current_time >= (TIMER14_ARR_VALUE * adc_value2) / 0xFFu) {
