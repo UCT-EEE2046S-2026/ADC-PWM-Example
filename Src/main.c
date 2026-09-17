@@ -117,6 +117,30 @@ uint8_t Read_ADC_Value() {
 	return adc_data_8bit;
 }
 
+const uint16_t TIMER14_TICK_FREQUENCY_HZ = 10000; // 10 kHz tick frequency
+const uint16_t TIMER14_PERIOD_MS		 = 10;
+const uint16_t TIMER14_ARR_VALUE = (TIMER14_PERIOD_MS * TIMER14_TICK_FREQUENCY_HZ) / 1000;
+
+void Init_Timer14() {
+	RCC->APB1ENR |= RCC_APB1ENR_TIM14EN; // Enable TIM14 clock
+
+	// 1ds Tick Frequency
+	const uint32_t timer_clock_hz = 8000000; // Assuming APB1 clock is 8 MHz
+	const uint32_t prescaler	  = (timer_clock_hz / TIMER14_TICK_FREQUENCY_HZ) - 1;
+	TIM14->PSC					  = prescaler;
+	TIM14->ARR = TIMER14_ARR_VALUE; // Set auto-reload value for 10 ms period
+	TIM14->EGR |= TIM_EGR_UG; // Generate an update event to load the prescaler value
+	TIM14->SR &= ~TIM_SR_UIF; // Clear the update interrupt flag
+}
+
+void Start_Timer14() {
+	TIM14->CR1 |= TIM_CR1_CEN; // Enable the timer
+}
+
+uint16_t Get_Timer14_Count() {
+	return TIM14->CNT; // Return the current count value
+}
+
 extern LCD_Init_t lcd_init;
 
 int main(void) {
@@ -124,14 +148,16 @@ int main(void) {
 	Init_LED_GPIO();
 	Init_ADC();
 
+	Init_Timer14();
+
 	Init_LCD_GPIO();
 	LCD_Init(&lcd_init);
 
-	uint8_t adc_value1 = 0, adc_value2 = 0;
+	Start_Timer14();
 
 	char lcd_line1[17], lcd_line2[17];
 
-	const uint32_t total_delay_ms = 10; // Total delay in milliseconds
+	uint8_t adc_value1, adc_value2;
 
 	while (1) {
 		Start_ADC_Conversion(); // Start a new single conversion
@@ -146,14 +172,12 @@ int main(void) {
 		LCD_NewLine(1, 0);
 		LCD_PutString(lcd_line2);
 
-		// Divide the total delay into on and off times based on adc_value2
-		// (this is a rudimentary way to create a PWM-like effect)
-		uint32_t on_time_ms	 = (adc_value2 * total_delay_ms) / 0xFF;
-		uint32_t off_time_ms = total_delay_ms - on_time_ms;
-		Write_LED(adc_value1); // Write the ADC value to the LEDs
-		Delay_ms(on_time_ms);  // Delay for the "on" time
-		Write_LED(0);		   // Turn off the LEDs
-		Delay_ms(off_time_ms); // Delay for the "off" time
+		uint16_t current_time = Get_Timer14_Count();
+		if (current_time >= (TIMER14_ARR_VALUE * adc_value2) / 0xFFu) {
+			Write_LED(0x00); // Turn off all LEDs
+		} else {
+			Write_LED(adc_value1); // Display ADC value on LEDs
+		}
 	}
 }
 

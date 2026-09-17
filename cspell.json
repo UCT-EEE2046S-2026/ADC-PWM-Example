@@ -11,6 +11,7 @@
     "CFGR",
     "CHSEL",
     "CHSELR",
+    "DISCEN",
     "DMAEN",
     "GPIOA",
     "GPIOAEN",
