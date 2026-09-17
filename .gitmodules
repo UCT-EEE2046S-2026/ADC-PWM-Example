@@ -1,0 +1,3 @@
+[submodule "Modules/LCD"]
+	path = Modules/LCD
+	url = https://github.com/UCT-EEE2046S-2026/LCD_HD44780U

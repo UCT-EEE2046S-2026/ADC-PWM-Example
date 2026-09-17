@@ -61,6 +61,7 @@ add_link_options(
 )
 
 add_subdirectory(Drivers/CMSIS) # Provides lib CMSIS_STM32F0
+add_subdirectory(Modules) # Provides lib LCD
 
 set(APPLICATION_INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Inc
@@ -77,6 +78,7 @@ add_executable(${TARGET_EXECUTABLE}
 
 target_link_libraries(${TARGET_EXECUTABLE} PRIVATE
     CMSIS_STM32F0
+    LCD::HD44780U
 )
 
 target_include_directories(${TARGET_EXECUTABLE} PRIVATE
